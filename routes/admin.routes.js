@@ -9,7 +9,7 @@ import {
   updateItem,
   deleteItem,
   getFeaturedItems,
-  getPopularItems,
+  getPopularItems, 
   createOrder,
   addOffer,
   getOffers,
