@@ -50,15 +50,42 @@ export const addItem = async (req, res) => {
       return res.status(400).json({ message: 'Required fields missing' });
     }
 
+    // Parse arrays with error handling
+    let parsedSizes = [];
+    let parsedTemperatures = [];
+    let parsedAddons = [];
+
+    try {
+      parsedSizes = sizes ? JSON.parse(sizes) : [];
+      if (!Array.isArray(parsedSizes)) {
+        return res.status(400).json({ message: 'Sizes must be a valid JSON array' });
+      }
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid JSON format for sizes' });
+    }
+
+    try {
+      parsedTemperatures = temperatures ? JSON.parse(temperatures) : [];
+      if (!Array.isArray(parsedTemperatures)) {
+        return res.status(400).json({ message: 'Temperatures must be a valid JSON array' });
+      }
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid JSON format for temperatures' });
+    }
+
+    try {
+      parsedAddons = addons ? JSON.parse(addons) : [];
+      if (!Array.isArray(parsedAddons)) {
+        return res.status(400).json({ message: 'Addons must be a valid JSON array' });
+      }
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid JSON format for addons' });
+    }
+
     // Upload main item image
     const imageBlob = await put(`items/${Date.now()}-${imageFile.originalname}`, new File([imageFile.buffer], imageFile.originalname, { type: imageFile.mimetype }), {
       access: 'public',
     });
-
-    // Parse arrays
-    const parsedSizes = sizes ? JSON.parse(sizes) : [];
-    const parsedTemperatures = temperatures ? JSON.parse(temperatures) : [];
-    let parsedAddons = addons ? JSON.parse(addons) : [];
 
     // Upload single addon image if provided
     let addonImageUrl = null;
@@ -234,6 +261,7 @@ export const getFeaturedItems = async (req, res) => {
 export const addOffer = async (req, res) => {
   try {
     const { title, description, itemIds } = req.body;
+    console.log('itemIds:', itemIds, 'Type:', typeof itemIds);
     const file = req.files?.image?.[0];
 
     if (!title || !description || !file) {
@@ -244,7 +272,17 @@ export const addOffer = async (req, res) => {
       access: 'public',
     });
 
-    const parsedItemIds = itemIds ? JSON.parse(itemIds) : [];
+    let parsedItemIds = [];
+    try {
+      parsedItemIds = itemIds ? JSON.parse(itemIds) : [];
+      if (!Array.isArray(parsedItemIds)) {
+        return res.status(400).json({ message: 'Item IDs must be a valid JSON array' });
+      }
+    } catch (err) {
+      console.error('JSON parsing error for itemIds:', itemIds, 'Error:', err.message);
+      return res.status(400).json({ message: `Invalid JSON format for itemIds: ${err.message}` });
+    }
+
     if (parsedItemIds.length > 0) {
       const items = await Item.find({ _id: { $in: parsedItemIds } });
       if (items.length !== parsedItemIds.length) {
@@ -262,6 +300,7 @@ export const addOffer = async (req, res) => {
     await offer.save();
     res.status(201).json(offer);
   } catch (err) {
+    console.error('Error in addOffer:', err);
     res.status(500).json({ message: err.message });
   }
 };
