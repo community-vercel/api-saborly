@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
+    "type": "module",
+
   "scripts": {
     "start": "nodemon app.js"
   },
