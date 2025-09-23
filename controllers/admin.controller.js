@@ -10,6 +10,8 @@ export const addCategory = async (req, res) => {
   try {
     const { name } = req.body;
     const file = req.files?.image?.[0];
+    console.log("file:", file);
+     console.log("req.files:", req.files);
 
     if (!name || !file) {
       return res.status(400).json({ message: 'Name and image are required' });
