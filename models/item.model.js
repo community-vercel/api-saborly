@@ -27,6 +27,10 @@ const itemSchema = new mongoose.Schema({
     name: { type: String, required: true },
     price: { type: Number, required: true },
   }],
+  temperatures: [{
+    name: { type: String, required: true }, // e.g., Rare, Medium, Well
+    price: { type: Number, required: true },
+  }],
   addons: [{
     name: { type: String, required: true },
     image: { type: String },
@@ -40,9 +44,9 @@ const itemSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  isPopular: {
-    type: Boolean,
-    default: false,
+ sellCount: {  // New field to track sales
+    type: Number,
+    default: 0,
   },
 }, { timestamps: true });
 
