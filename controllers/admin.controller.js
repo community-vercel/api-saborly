@@ -1,3 +1,4 @@
+
 // controllers/admin.controller.js
 import Category from '../models/category.model.js';
 import { put, del } from '@vercel/blob';
@@ -10,8 +11,6 @@ export const addCategory = async (req, res) => {
   try {
     const { name } = req.body;
     const file = req.files?.image?.[0];
-    console.log("file:", file);
-     console.log("req.files:", req.files);
 
     if (!name || !file) {
       return res.status(400).json({ message: 'Name and image are required' });
@@ -70,7 +69,7 @@ export const addItem = async (req, res) => {
       addonImageUrl = blob.url;
     }
 
-    // Update addons with uploaded image URL (assign to matching imageName)
+    // Update addons with uploaded image URL
     parsedAddons = parsedAddons.map(addon => ({
       ...addon,
       image: addon.imageName === (addonImageFile?.originalname || '') ? addonImageUrl : addon.image,
@@ -149,10 +148,8 @@ export const updateItem = async (req, res) => {
     const parsedTemperatures = temperatures ? JSON.parse(temperatures) : undefined;
     let parsedAddons = addons ? JSON.parse(addons) : undefined;
 
-    // Upload single addon image if provided
     let addonImageUrl = null;
     if (addonImageFile) {
-      // Delete old addon image if exists
       const item = await Item.findById(id);
       if (item && item.addons) {
         const addonToUpdate = item.addons.find(a => a.imageName === addonImageFile.originalname);

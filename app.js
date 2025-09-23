@@ -3,6 +3,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import adminRoutes from './routes/admin.routes.js';
+import authRoutes from './routes/auth.routes.js'; 
 import { connectDB } from './config/db.config.js';
 
 dotenv.config();
@@ -17,6 +18,8 @@ connectDB();
 
 // Routes
 app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
+
 
 // Health check route
 app.get('/api/health', (req, res) => {
