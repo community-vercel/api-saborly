@@ -1,4 +1,4 @@
-
+// controllers/admin.controller.js
 import Category from '../models/category.model.js';
 import { put, del } from '@vercel/blob';
 import Item from '../models/item.model.js';
@@ -9,7 +9,7 @@ import Offer from '../models/offer.model.js';
 export const addCategory = async (req, res) => {
   try {
     const { name } = req.body;
-    const file = req.files?.image?.[0]; // From uploadFields
+    const file = req.files?.image?.[0];
 
     if (!name || !file) {
       return res.status(400).json({ message: 'Name and image are required' });
@@ -43,7 +43,7 @@ export const addItem = async (req, res) => {
   try {
     const { name, description, price, category, sizes, temperatures, addons, isFeatured } = req.body;
     const imageFile = req.files?.image?.[0];
-    const addonImageFiles = req.files?.addonImages || [];
+    const addonImageFile = req.files?.addonImage?.[0];
 
     if (!name || !description || !price || !category || !imageFile) {
       return res.status(400).json({ message: 'Required fields missing' });
@@ -59,20 +59,19 @@ export const addItem = async (req, res) => {
     const parsedTemperatures = temperatures ? JSON.parse(temperatures) : [];
     let parsedAddons = addons ? JSON.parse(addons) : [];
 
-    // Upload addon images and map to addons
-    const addonImageMap = {};
-    for (let i = 0; i < addonImageFiles.length; i++) {
-      const addonImage = addonImageFiles[i];
-      const blob = await put(`addons/${Date.now()}-${addonImage.originalname}`, new File([addonImage.buffer], addonImage.originalname, { type: addonImage.mimetype }), {
+    // Upload single addon image if provided
+    let addonImageUrl = null;
+    if (addonImageFile) {
+      const blob = await put(`addons/${Date.now()}-${addonImageFile.originalname}`, new File([addonImageFile.buffer], addonImageFile.originalname, { type: addonImageFile.mimetype }), {
         access: 'public',
       });
-      addonImageMap[addonImage.originalname] = blob.url;
+      addonImageUrl = blob.url;
     }
 
-    // Update addons with uploaded image URLs
+    // Update addons with uploaded image URL (assign to matching imageName)
     parsedAddons = parsedAddons.map(addon => ({
       ...addon,
-      image: addonImageMap[addon.imageName] || addon.image, // Match uploaded image by name
+      image: addon.imageName === (addonImageFile?.originalname || '') ? addonImageUrl : addon.image,
     }));
 
     // Check featured limit
@@ -130,16 +129,14 @@ export const updateItem = async (req, res) => {
     const { id } = req.params;
     const { name, description, price, sizes, temperatures, addons, isFeatured } = req.body;
     const imageFile = req.files?.image?.[0];
-    const addonImageFiles = req.files?.addonImages || [];
-    let image = req.body.image; // Existing image URL
+    const addonImageFile = req.files?.addonImage?.[0];
+    let image = req.body.image;
 
     if (imageFile) {
-      // Delete old image if exists
       const item = await Item.findById(id);
       if (item && item.image) {
         await del(item.image);
       }
-      // Upload new image
       const blob = await put(`items/${Date.now()}-${imageFile.originalname}`, new File([imageFile.buffer], imageFile.originalname, { type: imageFile.mimetype }), {
         access: 'public',
       });
@@ -150,21 +147,28 @@ export const updateItem = async (req, res) => {
     const parsedTemperatures = temperatures ? JSON.parse(temperatures) : undefined;
     let parsedAddons = addons ? JSON.parse(addons) : undefined;
 
-    if (addonImageFiles.length > 0) {
-      const addonImageMap = {};
-      for (let i = 0; i < addonImageFiles.length; i++) {
-        const addonImage = addonImageFiles[i];
-        const blob = await put(`addons/${Date.now()}-${addonImage.originalname}`, new File([addonImage.buffer], addonImage.originalname, { type: addonImage.mimetype }), {
-          access: 'public',
-        });
-        addonImageMap[addonImage.originalname] = blob.url;
+    // Upload single addon image if provided
+    let addonImageUrl = null;
+    if (addonImageFile) {
+      // Delete old addon image if exists
+      const item = await Item.findById(id);
+      if (item && item.addons) {
+        const addonToUpdate = item.addons.find(a => a.imageName === addonImageFile.originalname);
+        if (addonToUpdate && addonToUpdate.image) {
+          await del(addonToUpdate.image);
+        }
       }
-      if (parsedAddons) {
-        parsedAddons = parsedAddons.map(addon => ({
-          ...addon,
-          image: addon.imageName ? addonImageMap[addon.imageName] || addon.image : addon.image,
-        }));
-      }
+      const blob = await put(`addons/${Date.now()}-${addonImageFile.originalname}`, new File([addonImageFile.buffer], addonImageFile.originalname, { type: addonImageFile.mimetype }), {
+        access: 'public',
+      });
+      addonImageUrl = blob.url;
+    }
+
+    if (parsedAddons) {
+      parsedAddons = parsedAddons.map(addon => ({
+        ...addon,
+        image: addon.imageName === (addonImageFile?.originalname || '') ? addonImageUrl : addon.image,
+      }));
     }
 
     if (isFeatured === 'true') {
@@ -203,7 +207,6 @@ export const deleteItem = async (req, res) => {
     const item = await Item.findById(id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
 
-    // Delete main image and addon images
     if (item.image) await del(item.image);
     if (item.addons) {
       for (const addon of item.addons) {

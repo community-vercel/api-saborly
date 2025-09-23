@@ -1,4 +1,3 @@
-// routes/admin.routes.js
 import express from 'express';
 import {
   addCategory,
@@ -9,25 +8,25 @@ import {
   updateItem,
   deleteItem,
   getFeaturedItems,
-  getPopularItems, 
+  getPopularItems,
   createOrder,
   addOffer,
   getOffers,
-  getOfferItems, 
+  getOfferItems,
 } from '../controllers/admin.controller.js';
-import upload from '../middlewares/upload.middleware.js';
+import { uploadFields } from '../middlewares/upload.middleware.js';
 
 const router = express.Router();
 
 // Categories
-router.post('/categories', upload.single('image'), addCategory);
+router.post('/categories', uploadFields, addCategory);
 router.get('/categories', getCategories);
 
 // Items
-router.post('/items', upload.single('image'), addItem);
+router.post('/items', uploadFields, addItem);
 router.get('/items', getItems);
 router.get('/items/category/:categoryId', getItemsByCategory);
-router.put('/items/:id', upload.single('image'), updateItem);
+router.put('/items/:id', uploadFields, updateItem);
 router.delete('/items/:id', deleteItem);
 
 // Homepage specifics
@@ -35,7 +34,7 @@ router.get('/featured', getFeaturedItems);
 router.get('/popular', getPopularItems);
 
 // Offers
-router.post('/offers', upload.single('image'), addOffer);
+router.post('/offers', uploadFields, addOffer);
 router.get('/offers', getOffers);
 router.get('/offers/:offerId/items', getOfferItems);
 

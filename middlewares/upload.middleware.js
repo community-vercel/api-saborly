@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const storage = multer.memoryStorage(); // Use memory instead of disk
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -24,5 +24,11 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
 });
+
+// Middleware for multiple file uploads
+export const uploadFields = upload.fields([
+  { name: 'image', maxCount: 1 }, // For category/item/offer main image
+  { name: 'addonImage', maxCount: 1 }, // For single addon image
+]);
 
 export default upload;
