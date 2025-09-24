@@ -1,7 +1,45 @@
 
-// models/user.model.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+
+const addressSchema = new mongoose.Schema({
+  label: {
+    type: String,
+    enum: ['home', 'office', 'others'],
+    required: true,
+  },
+  address: {
+    type: String,
+    required: true,
+  },
+});
+
+const orderSchema = new mongoose.Schema({
+  orderId: { type: String, required: true },
+  items: [{
+    name: String,
+    quantity: Number,
+    price: Number,
+    image: String,
+    addons: [String],
+  }],
+  total: Number,
+  subTotal: Number,
+  discount: Number,
+  deliveryCharge: Number,
+  status: {
+    type: String,
+    enum: ['pending', 'accept', 'preparing', 'prepared', 'out for delivery', 'delivered', 'returned'],
+    default: 'pending',
+  },
+  time: { type: Date, default: Date.now },
+  deliveryTime: Date,
+  paymentInfo: {
+    method: String,
+    amount: Number,
+    status: String,
+  },
+});
 
 const userSchema = new mongoose.Schema({
   phoneNo: {
@@ -40,6 +78,16 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
   resetPasswordCode: {
+    type: String,
+    default: null,
+  },
+  addresses: [addressSchema],
+  language: {
+    type: String,
+    default: 'en', // e.g., 'en', 'es', 'fr'
+  },
+  orders: [orderSchema],
+  profileImage: {
     type: String,
     default: null,
   },

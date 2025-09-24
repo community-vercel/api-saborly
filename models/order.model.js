@@ -24,7 +24,11 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ['paid', 'unpaid'],
     default: 'unpaid',
-  },
+  },  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }
 }, { timestamps: true });
 
 export default mongoose.model('Order', orderSchema);

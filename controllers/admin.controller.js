@@ -1,4 +1,3 @@
-
 // controllers/admin.controller.js
 import Category from '../models/category.model.js';
 import { put, del } from '@vercel/blob';
@@ -486,7 +485,7 @@ export const getPopularItems = async (req, res) => {
 // Create Order
 export const createOrder = async (req, res) => {
   try {
-    const { items, totalPrice } = req.body;
+    const { items, totalPrice, userEmail } = req.body;
 
     if (!items || !Array.isArray(items) || !totalPrice) {
       return res.status(400).json({ message: 'Items and totalPrice are required' });
@@ -518,6 +517,7 @@ export const createOrder = async (req, res) => {
         specialInstructions: item.specialInstructions || '',
       })),
       totalPrice,
+      userEmail: userEmail || 'anis.inbox10@gmail.com', // Default to anis.inbox10@gmail.com if not provided
     });
 
     await order.save();
@@ -540,6 +540,33 @@ export const getOrders = async (req, res) => {
   }
 };
 
+// Get Orders by User Email
+// export const getOrdersByUser = async (req, res) => {
+//   try {
+//     const { email } = req.params;
+//     const orders = await Order.find({ userEmail: email }).populate({
+//       path: 'items.item',
+//       populate: { path: 'category' },
+//     }).sort({ createdAt: -1 });
+//     res.json(orders);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// Get Orders for anis.inbox10@gmail.com
+// export const getAnisOrders = async (req, res) => {
+//   try {
+//     const orders = await Order.find({ userEmail: 'anis.inbox10@gmail.com' }).populate({
+//       path: 'items.item',
+//       populate: { path: 'category' },
+//     }).sort({ createdAt: -1 });
+//     res.json(orders);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
 // Get Order by ID
 export const getOrderById = async (req, res) => {
   try {
@@ -559,10 +586,10 @@ export const getOrderById = async (req, res) => {
 export const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { items, totalPrice, status } = req.body;
+    const { items, totalPrice, status, userEmail } = req.body;
 
-    if (!items && !totalPrice && !status) {
-      return res.status(400).json({ message: 'At least one field (items, totalPrice, or status) is required' });
+    if (!items && !totalPrice && !status && !userEmail) {
+      return res.status(400).json({ message: 'At least one field (items, totalPrice, status, or userEmail) is required' });
     }
 
     if (items && !Array.isArray(items)) {
@@ -597,6 +624,7 @@ export const updateOrder = async (req, res) => {
         : undefined,
       totalPrice: totalPrice ? parseFloat(totalPrice) : undefined,
       status: status || undefined,
+      userEmail: userEmail || undefined,
     };
 
     const order = await Order.findByIdAndUpdate(id, { $set: updatedData }, { new: true }).populate({

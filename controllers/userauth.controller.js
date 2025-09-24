@@ -1,4 +1,3 @@
-
 // controllers/auth.controller.js
 import User from '../models/user.model.js';
 import jwt from 'jsonwebtoken';
@@ -165,6 +164,224 @@ export const login = async (req, res) => {
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '10h' });
 
     res.json({ message: 'Login successful', token, user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get User Profile
+export const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password -emailVerificationCode -resetPasswordCode');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update Profile
+export const updateProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, email, phoneNo } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already registered' });
+      }
+      user.email = email;
+    }
+    if (phoneNo && phoneNo !== user.phoneNo) {
+      const existingUser = await User.findOne({ phoneNo });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Phone number already registered' });
+      }
+      user.phoneNo = phoneNo;
+    }
+    user.firstName = firstName || user.firstName;
+    user.lastName = lastName || user.lastName;
+    await user.save();
+    res.json({ message: 'Profile updated successfully', user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, phoneNo: user.phoneNo } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+// Create New Address
+export const createAddress = async (req, res) => {
+  try {
+    const { label, address } = req.body;
+    
+    // Validation
+    if (!label || !address) {
+      return res.status(400).json({ message: 'Label and address are required' });
+    }
+    
+    if (!['home', 'office', 'others'].includes(label)) {
+      return res.status(400).json({ message: 'Invalid address label. Must be home, office, or others' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if address with this label already exists
+    const existingAddress = user.addresses.find(a => a.label === label);
+    if (existingAddress) {
+      return res.status(400).json({ 
+        message: 'Address with this label already exists. Use update instead.' 
+      });
+    }
+
+    // Add new address
+    user.addresses.push({ label, address });
+    await user.save();
+
+    res.status(201).json({ 
+      message: 'Address created successfully', 
+      addresses: user.addresses 
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+// Get All Addresses
+export const getAddresses = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('addresses');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ addresses: user.addresses });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update Address
+export const updateAddress = async (req, res) => {
+  try {
+    const { label, address } = req.body;
+    if (!label || !address) {
+      return res.status(400).json({ message: 'Label and address are required' });
+    }
+    if (!['home', 'office', 'others'].includes(label)) {
+      return res.status(400).json({ message: 'Invalid address label' });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const existingAddress = user.addresses.find(a => a.label === label);
+    if (!existingAddress) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+    existingAddress.address = address;
+    await user.save();
+    res.json({ message: 'Address updated successfully', addresses: user.addresses });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Delete Address
+export const deleteAddress = async (req, res) => {
+  try {
+    const { label } = req.body;
+    if (!label) {
+      return res.status(400).json({ message: 'Label is required' });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const initialLength = user.addresses.length;
+    user.addresses = user.addresses.filter(a => a.label !== label);
+    if (user.addresses.length === initialLength) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+    await user.save();
+    res.json({ message: 'Address deleted successfully', addresses: user.addresses });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Change Password
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new passwords are required' });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Change Language
+export const changeLanguage = async (req, res) => {
+  try {
+    const { language } = req.body;
+    if (!language) {
+      return res.status(400).json({ message: 'Language is required' });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    user.language = language;
+    await user.save();
+    res.json({ message: 'Language updated successfully', language: user.language });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get Orders
+// Get Orders
+export const getOrders = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('orders');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ orders: user.orders });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get Order Details
+export const getOrderDetails = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const user = await User.findById(req.user.id).select('orders');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const order = user.orders.find(o => o.orderId === orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.json({ order });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
