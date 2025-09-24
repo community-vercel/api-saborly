@@ -27,6 +27,7 @@ import {
 } from '../controllers/admin.controller.js';
 import { uploadFields } from '../middlewares/upload.middleware.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
+import { addSlider,getSliders,getSliderById,updateSlider,deleteSlider } from '../controllers/admin.slider.controller.js';
 
 const router = express.Router();
 
@@ -62,4 +63,10 @@ router.get('/orders/:id', authenticateToken, getOrderById);
 router.put('/orders/:id', authenticateToken, updateOrder);
 router.delete('/orders/:id', authenticateToken, deleteOrder);
 
+// Sliders
+router.post('/sliders', authenticateToken, uploadFields, addSlider);
+router.get('/sliders', getSliders);
+router.get('/sliders/:id', authenticateToken, getSliderById);
+router.put('/sliders/:id', authenticateToken, uploadFields, updateSlider);
+router.delete('/sliders/:id', authenticateToken, deleteSlider);
 export default router;
