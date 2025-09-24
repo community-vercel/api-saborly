@@ -4,6 +4,7 @@ import { put, del } from '@vercel/blob';
 import Item from '../models/item.model.js';
 import Order from '../models/order.model.js';
 import Offer from '../models/offer.model.js';
+import User from '../models/user.model.js'
 
 // Add Category
 export const addCategory = async (req, res) => {
@@ -487,8 +488,12 @@ export const createOrder = async (req, res) => {
   try {
     const { items, totalPrice, userEmail } = req.body;
 
+    // Validate required fields
     if (!items || !Array.isArray(items) || !totalPrice || !userEmail) {
       return res.status(400).json({ message: 'Items, totalPrice, and userEmail are required' });
+    }
+    if (typeof totalPrice !== 'number' || totalPrice <= 0) {
+      return res.status(400).json({ message: 'totalPrice must be a positive number' });
     }
 
     // Find the user by email
@@ -497,6 +502,7 @@ export const createOrder = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Validate and update items
     for (const orderItem of items) {
       const item = await Item.findById(orderItem.item);
       if (!item) {
@@ -523,12 +529,14 @@ export const createOrder = async (req, res) => {
         specialInstructions: item.specialInstructions || '',
       })),
       totalPrice,
-      user: user._id, // Assign the user's _id instead of userEmail
+      user: user._id,
     });
+    console.log('Creating order:', order);
 
     await order.save();
     res.status(201).json(order);
   } catch (err) {
+    console.error('Error creating order:', err); // Add logging for debugging
     res.status(500).json({ message: err.message });
   }
 };
