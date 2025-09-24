@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js'; 
 import settingRoutes from './routes/admin.setting.routes.js';
+import userRoutes from './routes/authuser.routes.js';
 import { connectDB } from './config/db.config.js';
 
 dotenv.config();
@@ -21,7 +22,7 @@ connectDB();
 app.use('/api/admin', adminRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/auth', authRoutes);
-
+app.use('/api/user', userRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

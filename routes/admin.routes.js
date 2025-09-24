@@ -56,7 +56,7 @@ router.delete('/offers/:id', authenticateToken, deleteOffer);
 router.get('/offers/:offerId/items', getOfferItems);
 
 // Orders
-router.post('/orders', createOrder);
+router.post('/orders', authenticateToken,createOrder);
 router.get('/orders', authenticateToken, getOrders);
 router.get('/orders/:id', authenticateToken, getOrderById);
 router.put('/orders/:id', authenticateToken, updateOrder);
