@@ -487,8 +487,14 @@ export const createOrder = async (req, res) => {
   try {
     const { items, totalPrice, userEmail } = req.body;
 
-    if (!items || !Array.isArray(items) || !totalPrice) {
-      return res.status(400).json({ message: 'Items and totalPrice are required' });
+    if (!items || !Array.isArray(items) || !totalPrice || !userEmail) {
+      return res.status(400).json({ message: 'Items, totalPrice, and userEmail are required' });
+    }
+
+    // Find the user by email
+    const user = await User.findOne({ email: userEmail });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
     for (const orderItem of items) {
@@ -517,7 +523,7 @@ export const createOrder = async (req, res) => {
         specialInstructions: item.specialInstructions || '',
       })),
       totalPrice,
-      userEmail: userEmail
+      user: user._id, // Assign the user's _id instead of userEmail
     });
 
     await order.save();
@@ -526,7 +532,6 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 // Get All Orders
 export const getOrders = async (req, res) => {
   try {
