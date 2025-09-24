@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import transporter from '../config/email.config.js';
 import { emailTemplates } from '../config/email-templates.js';
+import Item from '../models/item.model.js';
+import Order from '../models/order.model.js';
+import Offer from '../models/offer.model.js';
 import { put, del } from '@vercel/blob';
 
 
