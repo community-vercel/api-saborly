@@ -27,8 +27,10 @@ const upload = multer({
 
 // Middleware for multiple file uploads
 export const uploadFields = upload.fields([
-  { name: 'image', maxCount: 1 }, // For category/item/offer main image
-  { name: 'addonImage', maxCount: 1 }, // For single addon image
+  { name: 'image', maxCount: 1 }, 
+  { name: 'addonImage', maxCount: 1 }, 
+    { name: 'profileImage', maxCount: 1 }, 
+
 ]);
 
 export default upload;

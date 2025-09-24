@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import transporter from '../config/email.config.js';
 import { emailTemplates } from '../config/email-templates.js';
+import { put, del } from '@vercel/blob';
+
 
 const generateVerificationCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -190,6 +192,8 @@ export const updateProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // Handle email update
     if (email && email !== user.email) {
       const existingUser = await User.findOne({ email });
       if (existingUser) {
@@ -197,6 +201,8 @@ export const updateProfile = async (req, res) => {
       }
       user.email = email;
     }
+
+    // Handle phone number update
     if (phoneNo && phoneNo !== user.phoneNo) {
       const existingUser = await User.findOne({ phoneNo });
       if (existingUser) {
@@ -204,10 +210,40 @@ export const updateProfile = async (req, res) => {
       }
       user.phoneNo = phoneNo;
     }
+
+    // Update first name and last name
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
+
+    // Handle profile image upload
+    if (req.files?.profileImage?.[0]) {
+      const file = req.files.profileImage[0];
+      const blobFile = new File([file.buffer], file.originalname, { type: file.mimetype });
+
+      // Delete old image if it exists
+      if (user.profileImage) {
+        await del(user.profileImage);
+      }
+
+      // Upload new image
+      const blob = await put(`profiles/${Date.now()}-${file.originalname}`, blobFile, {
+        access: 'public',
+      });
+      user.profileImage = blob.url;
+    }
+
     await user.save();
-    res.json({ message: 'Profile updated successfully', user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, phoneNo: user.phoneNo } });
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNo: user.phoneNo,
+        profileImage: user.profileImage,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
