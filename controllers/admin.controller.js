@@ -517,7 +517,7 @@ export const createOrder = async (req, res) => {
         specialInstructions: item.specialInstructions || '',
       })),
       totalPrice,
-      userEmail: userEmail || 'anis.inbox10@gmail.com', // Default to anis.inbox10@gmail.com if not provided
+      userEmail: userEmail
     });
 
     await order.save();
