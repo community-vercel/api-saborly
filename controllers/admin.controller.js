@@ -39,6 +39,64 @@ export const getCategories = async (req, res) => {
   }
 };
 
+// Update Category
+export const updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const file = req.files?.image?.[0];
+    let image = req.body.image;
+
+    if (!name && !file) {
+      return res.status(400).json({ message: 'At least one field (name or image) is required' });
+    }
+
+    if (file) {
+      const category = await Category.findById(id);
+      if (category && category.image) {
+        await del(category.image);
+      }
+      const blobFile = new File([file.buffer], file.originalname, { type: file.mimetype });
+      const blob = await put(`categories/${Date.now()}-${file.originalname}`, blobFile, {
+        access: 'public',
+      });
+      image = blob.url;
+    }
+
+    const updatedData = {
+      name: name || undefined,
+      image: image || undefined,
+    };
+
+    const category = await Category.findByIdAndUpdate(id, { $set: updatedData }, { new: true });
+    if (!category) return res.status(404).json({ message: 'Category not found' });
+    res.json(category);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Delete Category
+export const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const category = await Category.findByIdAndDelete(id);
+    if (!category) return res.status(404).json({ message: 'Category not found' });
+
+    // Check if category is used by any items
+    // const itemCount = await Item.countDocuments({ category: id });
+    // if (itemCount > 0) {
+    //   return res.status(400).json({ message: 'Cannot delete category with associated items' });
+    // }
+
+    if (category.image) await del(category.image);
+    await Category.findByIdAndDelete(id);
+    res.json({ message: 'Category deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Add Item
 export const addItem = async (req, res) => {
   try {
@@ -315,6 +373,88 @@ export const getOffers = async (req, res) => {
   }
 };
 
+// Get Offer by ID
+export const getOfferById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const offer = await Offer.findById(id).populate('items');
+    if (!offer) return res.status(404).json({ message: 'Offer not found' });
+    res.json(offer);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update Offer
+export const updateOffer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, itemIds } = req.body;
+    const file = req.files?.image?.[0];
+    let image = req.body.image;
+
+    if (!title && !description && !itemIds && !file) {
+      return res.status(400).json({ message: 'At least one field (title, description, itemIds, or image) is required' });
+    }
+
+    if (file) {
+      const offer = await Offer.findById(id);
+      if (offer && offer.image) {
+        await del(offer.image);
+      }
+      const blob = await put(`offers/${Date.now()}-${file.originalname}`, new File([file.buffer], file.originalname, { type: file.mimetype }), {
+        access: 'public',
+      });
+      image = blob.url;
+    }
+
+    let parsedItemIds;
+    try {
+      parsedItemIds = itemIds ? JSON.parse(itemIds) : undefined;
+      if (parsedItemIds && !Array.isArray(parsedItemIds)) {
+        return res.status(400).json({ message: 'Item IDs must be a valid JSON array' });
+      }
+    } catch (err) {
+      return res.status(400).json({ message: `Invalid JSON format for itemIds: ${err.message}` });
+    }
+
+    if (parsedItemIds && parsedItemIds.length > 0) {
+      const items = await Item.find({ _id: { $in: parsedItemIds } });
+      if (items.length !== parsedItemIds.length) {
+        return res.status(400).json({ message: 'One or more item IDs are invalid' });
+      }
+    }
+
+    const updatedData = {
+      title: title || undefined,
+      description: description || undefined,
+      image: image || undefined,
+      items: parsedItemIds,
+    };
+
+    const offer = await Offer.findByIdAndUpdate(id, { $set: updatedData }, { new: true }).populate('items');
+    if (!offer) return res.status(404).json({ message: 'Offer not found' });
+    res.json(offer);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Delete Offer
+export const deleteOffer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const offer = await Offer.findById(id);
+    if (!offer) return res.status(404).json({ message: 'Offer not found' });
+
+    if (offer.image) await del(offer.image);
+    await Offer.findByIdAndDelete(id);
+    res.json({ message: 'Offer deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Get Items by Offer
 export const getOfferItems = async (req, res) => {
   try {
@@ -382,6 +522,103 @@ export const createOrder = async (req, res) => {
 
     await order.save();
     res.status(201).json(order);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get All Orders
+export const getOrders = async (req, res) => {
+  try {
+    const orders = await Order.find().populate({
+      path: 'items.item',
+      populate: { path: 'category' },
+    });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get Order by ID
+export const getOrderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findById(id).populate({
+      path: 'items.item',
+      populate: { path: 'category' },
+    });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update Order
+export const updateOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items, totalPrice, status } = req.body;
+
+    if (!items && !totalPrice && !status) {
+      return res.status(400).json({ message: 'At least one field (items, totalPrice, or status) is required' });
+    }
+
+    if (items && !Array.isArray(items)) {
+      return res.status(400).json({ message: 'Items must be an array' });
+    }
+
+    if (items) {
+      for (const orderItem of items) {
+        const item = await Item.findById(orderItem.item);
+        if (!item) {
+          return res.status(404).json({ message: `Item ${orderItem.item} not found` });
+        }
+        if (orderItem.size && !item.sizes.some(s => s.name === orderItem.size)) {
+          return res.status(400).json({ message: `Invalid size for item ${orderItem.item}` });
+        }
+        if (orderItem.temperature && !item.temperatures.some(t => t.name === orderItem.temperature)) {
+          return res.status(400).json({ message: `Invalid temperature for item ${orderItem.item}` });
+        }
+      }
+    }
+
+    const updatedData = {
+      items: items
+        ? items.map(item => ({
+            item: item.item,
+            quantity: item.quantity,
+            size: item.size,
+            temperature: item.temperature,
+            addons: item.addons,
+            specialInstructions: item.specialInstructions || '',
+          }))
+        : undefined,
+      totalPrice: totalPrice ? parseFloat(totalPrice) : undefined,
+      status: status || undefined,
+    };
+
+    const order = await Order.findByIdAndUpdate(id, { $set: updatedData }, { new: true }).populate({
+      path: 'items.item',
+      populate: { path: 'category' },
+    });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Delete Order
+export const deleteOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    await Order.findByIdAndDelete(id);
+    res.json({ message: 'Order deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
