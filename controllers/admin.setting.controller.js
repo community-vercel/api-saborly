@@ -39,7 +39,7 @@ export const createOrUpdateSetting = async (req, res) => {
 // Get Settings
 export const getSettings = async (req, res) => {
   try {
-    const setting = await Setting.findOne();
+    const setting = await Setting.findOne('-paymentGateway');
     if (!setting) return res.status(404).json({ message: 'Settings not found' });
     res.json(setting);
   } catch (err) {
