@@ -24,17 +24,17 @@ const itemSchema = new mongoose.Schema({
     required: true,
   },
   sizes: [{
-    name: { type: String, required: true },
-    price: { type: Number, required: true },
+    name: { type: String, required: false },
+    price: { type: Number, required: false },
   }],
   temperatures: [{
-    name: { type: String, required: true }, // e.g., Rare, Medium, Well
-    price: { type: Number, required: true },
+    name: { type: String, required: false }, // e.g., Rare, Medium, Well
+    price: { type: Number, required: false },
   }],
   addons: [{
-    name: { type: String, required: true },
+    name: { type: String, required: false },
     image: { type: String },
-    price: { type: Number, required: true },
+    price: { type: Number, required: false },
   }],
   isFeatured: {
     type: Boolean,
