@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js'; 
+import settingRoutes from './routes/admin.setting.routes.js';
 import { connectDB } from './config/db.config.js';
 
 dotenv.config();
@@ -18,6 +19,7 @@ connectDB();
 
 // Routes
 app.use('/api/admin', adminRoutes);
+app.use('/api/settings', settingRoutes);
 app.use('/api/auth', authRoutes);
 
 
