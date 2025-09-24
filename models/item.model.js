@@ -35,6 +35,7 @@ const itemSchema = new mongoose.Schema({
     name: { type: String, required: false },
     image: { type: String },
     price: { type: Number, required: false },
+    imageName: String,
   }],
   isFeatured: {
     type: Boolean,
@@ -44,10 +45,13 @@ const itemSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
- sellCount: {  // New field to track sales
+ sellCount: {  
     type: Number,
     default: 0,
   },
+  type: { type: String,
+     enum: ['veg', 'non-veg'],
+      required: false }, 
 }, { timestamps: true });
 
 export default mongoose.model('Item', itemSchema);

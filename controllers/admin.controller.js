@@ -100,12 +100,16 @@ export const deleteCategory = async (req, res) => {
 // Add Item
 export const addItem = async (req, res) => {
   try {
-    const { name, description, price, category, sizes, temperatures, addons, isFeatured } = req.body;
+    const { name, description, price, category, sizes, temperatures, addons, isFeatured, type } = req.body;
     const imageFile = req.files?.image?.[0];
     const addonImageFile = req.files?.addonImage?.[0];
 
-    if (!name || !description || !price || !category || !imageFile) {
-      return res.status(400).json({ message: 'Required fields missing' });
+    if (!name || !description || !price || !category || !imageFile || !type) {
+      return res.status(400).json({ message: 'Required fields missing (name, description, price, category, image, type)' });
+    }
+
+    if (!['veg', 'non-veg'].includes(type)) {
+      return res.status(400).json({ message: 'Type must be either veg or non-veg' });
     }
 
     // Parse arrays with error handling
@@ -179,6 +183,7 @@ export const addItem = async (req, res) => {
       addons: parsedAddons,
       isFeatured: isFeatured === 'true',
       sellCount: 0,
+      type, // Add type field
     });
 
     await item.save();
@@ -213,7 +218,7 @@ export const getItemsByCategory = async (req, res) => {
 export const updateItem = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, sizes, temperatures, addons, isFeatured } = req.body;
+    const { name, description, price, sizes, temperatures, addons, isFeatured, type } = req.body;
     const imageFile = req.files?.image?.[0];
     const addonImageFile = req.files?.addonImage?.[0];
     let image = req.body.image;
@@ -265,6 +270,10 @@ export const updateItem = async (req, res) => {
       }
     }
 
+    if (type && !['veg', 'non-veg'].includes(type)) {
+      return res.status(400).json({ message: 'Type must be either veg or non-veg' });
+    }
+
     const updatedData = {
       name,
       image,
@@ -274,6 +283,7 @@ export const updateItem = async (req, res) => {
       temperatures: parsedTemperatures,
       addons: parsedAddons,
       isFeatured: isFeatured !== undefined ? isFeatured === 'true' : undefined,
+      type: type || undefined, // Add type field
     };
 
     const item = await Item.findByIdAndUpdate(id, { $set: updatedData }, { new: true });
@@ -486,14 +496,17 @@ export const getPopularItems = async (req, res) => {
 // Create Order
 export const createOrder = async (req, res) => {
   try {
-    const { items, totalPrice, userEmail } = req.body;
+    const { items, totalPrice, userEmail, deliveryType } = req.body;
 
     // Validate required fields
-    if (!items || !Array.isArray(items) || !totalPrice || !userEmail) {
-      return res.status(400).json({ message: 'Items, totalPrice, and userEmail are required' });
+    if (!items || !Array.isArray(items) || !totalPrice || !userEmail || !deliveryType) {
+      return res.status(400).json({ message: 'Items, totalPrice, userEmail, and deliveryType are required' });
     }
     if (typeof totalPrice !== 'number' || totalPrice <= 0) {
       return res.status(400).json({ message: 'totalPrice must be a positive number' });
+    }
+    if (!['delivery', 'takeaway'].includes(deliveryType)) {
+      return res.status(400).json({ message: 'deliveryType must be either delivery or takeaway' });
     }
 
     // Find the user by email
@@ -530,13 +543,20 @@ export const createOrder = async (req, res) => {
       })),
       totalPrice,
       user: user._id,
+      deliveryType, // Add deliveryType to order
     });
     console.log('Creating order:', order);
 
     await order.save();
-    res.status(201).json(order);
+    // Populate item details including category
+    const populatedOrder = await Order.findById(order._id).populate({
+      path: 'items.item',
+      populate: { path: 'category' },
+    });
+
+    res.status(201).json(populatedOrder);
   } catch (err) {
-    console.error('Error creating order:', err); // Add logging for debugging
+    console.error('Error creating order:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -553,32 +573,6 @@ export const getOrders = async (req, res) => {
   }
 };
 
-// Get Orders by User Email
-// export const getOrdersByUser = async (req, res) => {
-//   try {
-//     const { email } = req.params;
-//     const orders = await Order.find({ userEmail: email }).populate({
-//       path: 'items.item',
-//       populate: { path: 'category' },
-//     }).sort({ createdAt: -1 });
-//     res.json(orders);
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-// Get Orders for anis.inbox10@gmail.com
-// export const getAnisOrders = async (req, res) => {
-//   try {
-//     const orders = await Order.find({ userEmail: 'anis.inbox10@gmail.com' }).populate({
-//       path: 'items.item',
-//       populate: { path: 'category' },
-//     }).sort({ createdAt: -1 });
-//     res.json(orders);
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
 
 // Get Order by ID
 export const getOrderById = async (req, res) => {

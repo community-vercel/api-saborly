@@ -28,7 +28,10 @@ const orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  }
+  },
+  deliveryType: { type: String,
+     enum: ['delivery', 'takeaway'], 
+     required: false }, 
 }, { timestamps: true });
 
 export default mongoose.model('Order', orderSchema);
