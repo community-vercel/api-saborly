@@ -5,6 +5,7 @@ import {
   getAddresses, updateAddress, deleteAddress, changePassword, changeLanguage, getOrders, getOrderDetails,createAddress,
 } from '../controllers/userauth.controller.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
+import { uploadFields } from '../middlewares/upload.middleware.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.post('/verify-email', verifyEmail);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.get('/profile', authenticateToken, getProfile);
-router.put('/profile', authenticateToken, updateProfile);
+router.put('/profile', authenticateToken,uploadFields, updateProfile);
 router.get('/addresses', authenticateToken, getAddresses);
 router.post('/addresses', authenticateToken, createAddress);
 router.put('/addresses', authenticateToken, updateAddress);
