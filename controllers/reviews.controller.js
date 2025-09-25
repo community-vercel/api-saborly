@@ -8,7 +8,7 @@ export const addReview = async (req, res) => {
     const { itemId } = req.params;
     const { rating, comment } = req.body;
 const userId = req.user.id; 
-    console.log('Review request:', { itemId, userId, rating, comment });
+    // console.log('Review request:', { itemId, userId, rating, comment });
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: 'Rating must be between 1 and 5' });
