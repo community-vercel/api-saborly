@@ -3,6 +3,7 @@ import express from 'express';
 import { 
   signup, login, verifyEmail, forgotPassword, resetPassword, getProfile, updateProfile, 
   getAddresses, updateAddress, deleteAddress, changePassword, changeLanguage, getOrders, getOrderDetails,createAddress,
+  resendVerificationCode,
 } from '../controllers/userauth.controller.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 import { uploadFields } from '../middlewares/upload.middleware.js';
@@ -14,6 +15,7 @@ router.post('/login', login);
 router.post('/verify-email', verifyEmail);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.post('/resend-verification', resendVerificationCode); // Reuse signup for resending code
 router.get('/profile', authenticateToken, getProfile);
 router.put('/profile', authenticateToken,uploadFields, updateProfile);
 router.get('/addresses', authenticateToken, getAddresses);

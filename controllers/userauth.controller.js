@@ -36,26 +36,63 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const existingUser = await User.findOne({ $or: [{ phoneNo }, { email }] });
-    if (existingUser) {
+    // Check for existing verified user
+    const existingVerifiedUser = await User.findOne({
+      $or: [{ phoneNo }, { email }],
+      isVerified: true
+    });
+    
+    if (existingVerifiedUser) {
       return res.status(400).json({ message: 'Phone number or email already registered' });
     }
 
-    const user = new User({
-      phoneNo,
-      email,
-      firstName,
-      lastName,
-      password,
+    // Check for unverified user with same email/phone
+    const existingUnverifiedUser = await User.findOne({
+      $or: [{ phoneNo }, { email }],
+      isVerified: false
     });
 
+    let user;
+
+    if (existingUnverifiedUser) {
+      // Update the existing unverified user with new data
+      user = existingUnverifiedUser;
+      user.firstName = firstName;
+      user.lastName = lastName;
+      user.password = password;
+
+      // Optional: Delete if unverified for too long (e.g., more than 10 minutes)
+      const minutesSinceCreation = (Date.now() - user.createdAt) / (1000 * 60);
+      if (minutesSinceCreation > 10) {
+        // Delete the old unverified user and create new one
+        await User.findByIdAndDelete(user._id);
+        user = new User({ phoneNo, email, firstName, lastName, password });
+      }
+    } else {
+      // Create new user
+      user = new User({ phoneNo, email, firstName, lastName, password });
+    }
+
+    // Generate new verification code
     const verificationCode = generateVerificationCode();
     user.emailVerificationCode = verificationCode;
+    user.emailVerificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+    
     await user.save();
 
     await sendVerificationEmail(user, verificationCode, 'signup');
 
-    res.status(201).json({ message: 'User registered. Please verify your email with the code sent.', user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
+    res.status(201).json({ 
+      message: existingUnverifiedUser 
+        ? 'New verification code sent. Please verify your email.' 
+        : 'User registered. Please verify your email with the code sent.', 
+      user: { 
+        id: user._id, 
+        email: user.email, 
+        firstName: user.firstName, 
+        lastName: user.lastName 
+      } 
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -75,17 +112,72 @@ export const verifyEmail = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (user.emailVerificationCode !== code || user.isVerified) {
-      return res.status(400).json({ message: 'Invalid or expired verification code' });
+    // Check if already verified
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Email is already verified' });
     }
 
+    // Check verification code and expiration
+    if (!user.emailVerificationCode || user.emailVerificationCode !== code) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    // Check if code expired (optional)
+    if (user.emailVerificationCodeExpires && Date.now() > user.emailVerificationCodeExpires) {
+      return res.status(400).json({ message: 'Verification code has expired' });
+    }
+
+    // Verify the user
     user.isVerified = true;
     user.emailVerificationCode = null;
+    user.emailVerificationCodeExpires = null;
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '10h' });
 
-    res.json({ message: 'Email verified successfully', token, user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
+    res.json({ 
+      message: 'Email verified successfully', 
+      token, 
+      user: { 
+        id: user._id, 
+        email: user.email, 
+        firstName: user.firstName, 
+        lastName: user.lastName 
+      } 
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+export const resendVerificationCode = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Email is already verified' });
+    }
+
+    // Generate new verification code
+    const verificationCode = generateVerificationCode();
+    user.emailVerificationCode = verificationCode;
+    user.emailVerificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    
+    await user.save();
+
+    await sendVerificationEmail(user, verificationCode, 'resend');
+
+    res.json({ 
+      message: 'New verification code sent to your email' 
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
