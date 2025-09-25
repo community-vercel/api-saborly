@@ -2,7 +2,7 @@
 import express from 'express';
 import { 
   signup, login, verifyEmail, forgotPassword, resetPassword, getProfile, updateProfile, 
-  getAddresses, updateAddress, deleteAddress, changePassword, changeLanguage, getOrders, getOrderDetails,createAddress,searchItems
+  getAddresses, updateAddress, deleteAddress, changePassword, changeLanguage, getOrders, getOrderDetails,createAddress,
 } from '../controllers/userauth.controller.js';
 import { authenticateToken } from '../middlewares/auth.middleware.js';
 
@@ -23,6 +23,5 @@ router.put('/password', authenticateToken, changePassword);
 router.put('/language', authenticateToken, changeLanguage);
 router.get('/orders', authenticateToken, getOrders);
 router.get('/orders/:orderId', authenticateToken, getOrderDetails);
-router.get("/search",searchItems)
 
 export default router;
