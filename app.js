@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes.js';
 import settingRoutes from './routes/admin.setting.routes.js';
 import userRoutes from './routes/authuser.routes.js';
 import searchRoutes from './routes/search.routes.js';
+import reviewRoutes from './routes/reviews.routes.js';
 import { connectDB } from './config/db.config.js';
 
 dotenv.config();
@@ -25,6 +26,8 @@ app.use('/api/settings', settingRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api', searchRoutes);
+app.use('/api/review', reviewRoutes);
+
 
 
 
